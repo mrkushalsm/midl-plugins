@@ -451,7 +451,18 @@
             wrap.appendChild(readyBtn);
 
             if (me.isHost) {
-                const startBtn = el(`<button class="btn" id="startBtn" ${(!allReady || !enoughPlayers) ? 'disabled' : ''}>Start Game</button>`);
+                const canStart = allReady && enoughPlayers;
+                let blockReason = '';
+                if (!enoughPlayers) {
+                    blockReason = `Need ${pub.settings.minPlayers - real.length} more player${pub.settings.minPlayers - real.length === 1 ? '' : 's'} to start`;
+                } else if (!allReady) {
+                    const notReady = real.filter((p) => !p.ready).map((p) => p.name);
+                    blockReason = `Waiting on ${notReady.join(', ')} to ready up`;
+                }
+                if (blockReason) {
+                    wrap.appendChild(el(`<div class="center-text">${escapeHtml(blockReason)}</div>`));
+                }
+                const startBtn = el(`<button class="btn" id="startBtn" ${canStart ? '' : 'disabled'}>Start Game</button>`);
                 wrap.appendChild(startBtn);
             }
 
