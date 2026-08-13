@@ -19,6 +19,22 @@
     },
     {
       "schemaVersion": 1,
+      "id": "mafia",
+      "name": "Mafia",
+      "version": "1.0.0",
+      "minSdkVersion": "1.0.0",
+      "author": "Midl",
+      "description": "Classic social deduction party game. Mafia secretly eliminate Villagers each night while the Doctor and Detective try to protect and expose them by day.",
+      "tags": [
+        "game",
+        "multiplayer",
+        "party"
+      ],
+      "zipUrl": "https://github.com/mrkushalsm/midl-plugins/releases/download/v2026.08.13/mafia-1.0.0.zip",
+      "sha256": "6be7b6b22b8a835ac85d00515db762ce62dfae181422ff4c870deac03bd19d75"
+    },
+    {
+      "schemaVersion": 1,
       "id": "tictactoe",
       "name": "Tic-Tac-Toe",
       "version": "1.1.0",
