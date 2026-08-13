@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafia - Midl Server</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222222;
+            padding-bottom: 16px;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #444444;
+        }
+
+        .status-dot.connected {
+            background-color: #0070F3;
+        }
+
+        .card {
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .card h3 {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #888888;
+        }
+
+        .banner {
+            padding: 12px 16px;
+            border: 1px solid #222222;
+            background-color: #0a0a0a;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        .banner.accent {
+            border-color: #0070F3;
+            background-color: #0070F31a;
+            color: #0070F3;
+        }
+
+        .banner.danger {
+            border-color: #ff4d4d;
+            background-color: #ff4d4d1a;
+            color: #ff4d4d;
+        }
+
+        .role-badge {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0070F3;
+            background-color: #0070F31a;
+            border: 1px solid #0070F3;
+            padding: 6px 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .role-badge.mafia {
+            color: #ff4d4d;
+            background-color: #ff4d4d1a;
+            border-color: #ff4d4d;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background-color: #000000;
+            border: 1px solid #222222;
+            color: #ffffff;
+            padding: 14px 16px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #0070F3;
+        }
+
+        .btn {
+            background-color: transparent;
+            border: 1px solid #0070F3;
+            color: #0070F3;
+            padding: 14px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: #0070F3;
+            color: #ffffff;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .btn.secondary {
+            border-color: #333333;
+            color: #888888;
+        }
+
+        .btn.secondary:hover {
+            background-color: #222222;
+            color: #ffffff;
+        }
+
+        .btn.danger {
+            border-color: #ff4d4d;
+            color: #ff4d4d;
+        }
+
+        .btn.danger:hover {
+            background-color: #ff4d4d;
+            color: #ffffff;
+        }
+
+        .player-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border: 1px solid #222222;
+            font-size: 14px;
+        }
+
+        .player-row.dead {
+            opacity: 0.4;
+            text-decoration: line-through;
+        }
+
+        .player-row .tag {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #888888;
+            text-transform: uppercase;
+        }
+
+        .target-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border: 1px solid #222222;
+            background: transparent;
+            color: #ffffff;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+        }
+
+        .target-btn:hover:not(:disabled) {
+            border-color: #0070F3;
+        }
+
+        .target-btn.selected {
+            border-color: #0070F3;
+            background-color: #0070F31a;
+        }
+
+        .target-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .target-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .center-text {
+            text-align: center;
+            font-size: 13px;
+            color: #888888;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 10;
+        }
+
+        .overlay-card {
+            max-width: 420px;
+            width: 100%;
+            background-color: #0a0a0a;
+            border: 1px solid #222222;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            text-align: center;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row .btn {
+            flex: 1;
+        }
+
+        .small-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #666666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">MAFIA</div>
+            <div class="status">
+                <div id="statusDot" class="status-dot"></div>
+                <span id="statusText">CONNECTING</span>
+            </div>
+        </div>
+        <div id="app"></div>
+    </div>
+
+    <script>
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+        let ws = null;
+        let token = localStorage.getItem('mafia_token') || null;
+        let storedName = localStorage.getItem('mafia_name') || '';
+        let me = { pid: null, isHost: false, role: null, roleName: null, roleTeam: null, roleDescription: null, teammates: [], alive: true, isSpectator: false, investigations: [] };
+        let pub = null;
+        let ackedRound = 0; // last round for which the role/results overlay was dismissed
+
+        const app = document.getElementById('app');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        function send(event, data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ event, data }));
+            }
+        }
+
+        function connect() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'CONNECTED';
+                if (token && storedName) {
+                    send('join', { token, name: storedName });
+                }
+                render();
+            };
+
+            ws.onmessage = (evt) => {
+                let msg;
+                try { msg = JSON.parse(evt.data); } catch (e) { return; }
+                if (!msg || typeof msg !== 'object') return;
+                handleMessage(msg.event, msg.data);
+            };
+
+            ws.onclose = () => {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'RECONNECTING';
+                setTimeout(connect, 2000);
+            };
+        }
+
+        function handleMessage(event, data) {
+            if (event === 'joined') {
+                token = data.token;
+                localStorage.setItem('mafia_token', token);
+            } else if (event === 'you_state') {
+                me = data;
+            } else if (event === 'state') {
+                pub = data;
+                render();
+            } else if (event === 'error') {
+                showToast(data && data.message ? data.message : 'Something went wrong');
+            }
+        }
+
+        function showToast(message) {
+            const el = document.createElement('div');
+            el.className = 'banner danger';
+            el.style.position = 'fixed';
+            el.style.left = '20px';
+            el.style.right = '20px';
+            el.style.bottom = '20px';
+            el.style.maxWidth = '440px';
+            el.style.margin = '0 auto';
+            el.style.zIndex = '20';
+            el.textContent = message;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        function el(html) {
+            const wrap = document.createElement('div');
+            wrap.innerHTML = html;
+            return wrap.firstElementChild;
+        }
+
+        function doJoin() {
+            const input = document.getElementById('nameInput');
+            const name = input.value.trim();
+            if (!name) return;
+            storedName = name.slice(0, 20);
+            localStorage.setItem('mafia_name', storedName);
+            if (!token) {
+                token = 'tok_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+                localStorage.setItem('mafia_token', token);
+            }
+            send('join', { token, name: storedName });
+        }
+
+        // ---- Screens ----
+
+        function renderNameEntry() {
+            app.innerHTML = '';
+            app.appendChild(el(`
+                <div class="card">
+                    <h3>Enter Your Name</h3>
+                    <input type="text" id="nameInput" placeholder="Your name..." maxlength="20" autofocus>
+                    <button class="btn" id="joinBtn">Join Game</button>
+                </div>
+            `));
+            document.getElementById('joinBtn').addEventListener('click', doJoin);
+            document.getElementById('nameInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') doJoin();
+            });
+        }
+
+        function renderLobby() {
+            const real = pub.players.filter((p) => !p.isSpectator);
+            const allReady = real.length > 0 && real.every((p) => p.ready);
+            const enoughPlayers = real.length >= pub.settings.minPlayers;
+
+            const rows = pub.players.map((p) => `
+                <div class="player-row">
+                    <span>${escapeHtml(p.name)} ${p.isHost ? '<span class="tag">HOST</span>' : ''} ${p.isSpectator ? '<span class="tag">NEXT ROUND</span>' : ''}</span>
+                    <span class="tag" style="color:${p.ready ? '#0070F3' : '#666'}">${p.isSpectator ? (p.connected ? 'WAITING' : 'OFFLINE') : (p.ready ? 'READY' : 'NOT READY')}</span>
+                </div>
+            `).join('');
+
+            const wrap = el(`<div style="display:flex;flex-direction:column;gap:16px;"></div>`);
+            wrap.appendChild(el(`<div class="banner">${real.length}/${pub.settings.maxPlayers} PLAYERS &middot; NEED ${pub.settings.minPlayers}+ TO START</div>`));
+            wrap.appendChild(el(`<div class="card"><h3>Players</h3><div class="player-list">${rows}</div></div>`));
+
+            if (me.isHost) {
+                wrap.appendChild(el(`
+                    <div class="card">
+                        <h3>Host Settings</h3>
+                        <div class="small-label">Discussion length (seconds)</div>
+                        <input type="text" id="discInput" value="${pub.settings.discussionSeconds}">
+                        <button class="btn secondary" id="saveSettingsBtn">Save</button>
+                    </div>
+                `));
+            }
+
+            const readyBtn = el(`<button class="btn ${me.ready ? 'secondary' : ''}" id="readyBtn">${me.ready ? 'Not Ready' : "I'm Ready"}</button>`);
+            wrap.appendChild(readyBtn);
+
+            if (me.isHost) {
+                const startBtn = el(`<button class="btn" id="startBtn" ${(!allReady || !enoughPlayers) ? 'disabled' : ''}>Start Game</button>`);
+                wrap.appendChild(startBtn);
+            }
+
+            app.innerHTML = '';
+            app.appendChild(wrap);
+
+            document.getElementById('readyBtn').addEventListener('click', () => send('toggleReady'));
+            const startBtnEl = document.getElementById('startBtn');
+            if (startBtnEl) startBtnEl.addEventListener('click', () => send('startGame'));
+            const saveBtn = document.getElementById('saveSettingsBtn');
+            if (saveBtn) saveBtn.addEventListener('click', () => {
+                const val = parseInt(document.getElementById('discInput').value, 10);
+                send('updateSettings', { discussionSeconds: val });
+            });
+        }
+
+        function renderSpectator() {
+            app.innerHTML = '';
+            app.appendChild(el(`
+                <div class="card">
+                    <h3>Round ${pub.round}</h3>
+                    <div class="center-text">You'll join in as a player next round. Watching phase: <strong>${pub.phase}</strong></div>
+                </div>
+            `));
+        }
+
+        function renderRoleOverlay() {
+            const teammatesHtml = me.teammates.length
+                ? `<div class="small-label">Your fellow Mafia</div><div>${me.teammates.map((t) => escapeHtml(t.name)).join(', ')}</div>`
+                : '';
+            const overlay = el(`
+                <div class="overlay">
+                    <div class="overlay-card">
+                        <div class="role-badge ${me.roleTeam === 'mafia' ? 'mafia' : ''}">${escapeHtml(me.roleName || '')}</div>
+                        <div style="font-size:14px;color:#ccc;line-height:1.5;">${escapeHtml(me.roleDescription || '')}</div>
+                        ${teammatesHtml}
+                        <button class="btn" id="ackBtn">Continue</button>
+                    </div>
+                </div>
+            `);
+            document.body.appendChild(overlay);
+            document.getElementById('ackBtn').addEventListener('click', () => {
+                ackedRound = pub.round;
+                overlay.remove();
+                render();
+            });
+        }
+
+        function targetCandidates({ excludeSelf, excludeMafia, aliveOnly }) {
+            return pub.players.filter((p) => {
+                if (p.isSpectator) return false;
+                if (aliveOnly && !p.alive) return false;
+                if (excludeSelf && p.pid === me.pid) return false;
+                if (excludeMafia && me.teammates.some((t) => t.pid === p.pid)) return false;
+                return true;
+            });
+        }
+
+        function renderNight() {
+            if (pub.round > ackedRound) { renderRoleOverlay(); }
+
+            const voteResultBanner = pub.lastVoteResult
+                ? (pub.lastVoteResult.eliminatedName
+                    ? `<div class="banner danger">${escapeHtml(pub.lastVoteResult.eliminatedName)} was voted out${pub.lastVoteResult.wasTie ? ' (tie-break)' : ''}.</div>`
+                    : `<div class="banner accent">The vote ended with no elimination.</div>`)
+                : '';
+
+            if (!me.alive) {
+                app.innerHTML = '';
+                app.appendChild(el(`<div style="display:flex;flex-direction:column;gap:16px;">${voteResultBanner}<div class="card"><h3>Night ${pub.round}</h3><div class="center-text">You have been eliminated. Watching the game unfold.</div></div></div>`));
+                return;
+            }
+
+            const submitted = pub.night ? pub.night.submittedPids.includes(me.pid) : false;
+            const wrap = el(`<div style="display:flex;flex-direction:column;gap:16px;"></div>`);
+
+            if (voteResultBanner) wrap.appendChild(el(voteResultBanner));
+
+            wrap.appendChild(el(`<div class="role-badge ${me.roleTeam === 'mafia' ? 'mafia' : ''}">${escapeHtml(me.roleName || '')}</div>`));
+            wrap.appendChild(el(`<div class="banner">NIGHT ${pub.round} &middot; ${pub.night ? pub.night.submittedPids.length : 0} ACTED</div>`));
+
+            if (submitted) {
+                wrap.appendChild(el(`<div class="card"><div class="center-text">Action submitted. Waiting on other players...</div></div>`));
+            } else if (me.role === 'mafia') {
+                const candidates = targetCandidates({ excludeSelf: true, excludeMafia: true, aliveOnly: true });
+                wrap.appendChild(renderTargetCard('Choose a target to eliminate', candidates, (pid) => send('nightAction', { targetPid: pid }), true));
+            } else if (me.role === 'doctor') {
+                const candidates = targetCandidates({ excludeSelf: false, excludeMafia: false, aliveOnly: true });
+                wrap.appendChild(renderTargetCard('Choose a player to protect', candidates, (pid) => send('nightAction', { targetPid: pid }), true));
+            } else if (me.role === 'detective') {
+                const candidates = targetCandidates({ excludeSelf: true, excludeMafia: false, aliveOnly: true });
+                wrap.appendChild(renderTargetCard('Choose a player to investigate', candidates, (pid) => send('nightAction', { targetPid: pid }), true));
+                if (me.investigations.length) {
+                    const log = me.investigations.slice().reverse().map((i) => `
+                        <div class="player-row"><span>${escapeHtml(i.targetName)}</span><span class="tag" style="color:${i.result === 'mafia' ? '#ff4d4d' : '#0070F3'}">${i.result === 'mafia' ? 'MAFIA' : 'NOT MAFIA'}</span></div>
+                    `).join('');
+                    wrap.appendChild(el(`<div class="card"><h3>Past Investigations</h3><div class="player-list">${log}</div></div>`));
+                }
+            } else {
+                wrap.appendChild(el(`<div class="card"><div class="center-text">The Mafia, Doctor, and Detective are choosing their actions. Sit tight.</div></div>`));
+            }
+
+            if (me.isHost) {
+                wrap.appendChild(el(`<button class="btn secondary" id="forceNightBtn">Force End Night</button>`));
+            }
+
+            app.innerHTML = '';
+            app.appendChild(wrap);
+            const forceBtn = document.getElementById('forceNightBtn');
+            if (forceBtn) forceBtn.addEventListener('click', () => send('forceEndNight'));
+        }
+
+        function renderTargetCard(label, candidates, onPick, allowSkip) {
+            const card = el(`<div class="card"><h3>${label}</h3><div class="target-list" id="targetList"></div></div>`);
+            const list = card.querySelector('#targetList');
+            candidates.forEach((p) => {
+                const btn = el(`<button class="target-btn">${escapeHtml(p.name)}</button>`);
+                btn.addEventListener('click', () => onPick(p.pid));
+                list.appendChild(btn);
+            });
+            if (allowSkip) {
+                const skipBtn = el(`<button class="target-btn" style="color:#888;">Skip / No Action</button>`);
+                skipBtn.addEventListener('click', () => onPick(null));
+                list.appendChild(skipBtn);
+            }
+            return card;
+        }
+
+        function renderDiscussion() {
+            const wrap = el(`<div style="display:flex;flex-direction:column;gap:16px;"></div>`);
+
+            if (pub.lastNightDeaths.length) {
+                wrap.appendChild(el(`<div class="banner danger">${pub.lastNightDeaths.map((d) => escapeHtml(d.name)).join(', ')} did not survive the night.</div>`));
+            } else if (pub.round > 1) {
+                wrap.appendChild(el(`<div class="banner accent">Everyone survived the night.</div>`));
+            }
+
+            wrap.appendChild(el(`<div class="banner">DAY ${pub.round} &middot; DISCUSSION &middot; SUGGESTED ${pub.settings.discussionSeconds}S</div>`));
+
+            const rows = pub.players.filter((p) => !p.isSpectator).map((p) => `
+                <div class="player-row ${p.alive ? '' : 'dead'}"><span>${escapeHtml(p.name)}</span><span class="tag">${p.alive ? 'ALIVE' : 'ELIMINATED'}</span></div>
+            `).join('');
+            wrap.appendChild(el(`<div class="card"><h3>Players</h3><div class="player-list">${rows}</div></div>`));
+
+            if (!me.alive) {
+                wrap.appendChild(el(`<div class="center-text">You are eliminated. Watching the discussion.</div>`));
+            }
+
+            if (me.isHost) {
+                wrap.appendChild(el(`<button class="btn" id="startVotingBtn">Start Voting</button>`));
+            }
+
+            app.innerHTML = '';
+            app.appendChild(wrap);
+            const btn = document.getElementById('startVotingBtn');
+            if (btn) btn.addEventListener('click', () => send('startVoting'));
+        }
+
+        function renderVoting() {
+            const wrap = el(`<div style="display:flex;flex-direction:column;gap:16px;"></div>`);
+            const votedCount = pub.voting ? pub.voting.votedPids.length : 0;
+            wrap.appendChild(el(`<div class="banner">VOTING &middot; ${votedCount} VOTED</div>`));
+
+            if (!me.alive) {
+                wrap.appendChild(el(`<div class="card"><div class="center-text">You are eliminated and cannot vote.</div></div>`));
+            } else {
+                const hasVoted = pub.voting && pub.voting.votedPids.includes(me.pid);
+                if (hasVoted) {
+                    wrap.appendChild(el(`<div class="card"><div class="center-text">Vote submitted. Waiting on other players...</div></div>`));
+                } else {
+                    const candidates = pub.players.filter((p) => !p.isSpectator && p.alive && p.pid !== me.pid);
+                    wrap.appendChild(renderTargetCard('Vote to eliminate', candidates, (pid) => send('castVote', { targetPid: pid }), true));
+                }
+            }
+
+            if (me.isHost) {
+                wrap.appendChild(el(`<button class="btn secondary" id="forceVoteBtn">End Voting Now</button>`));
+            }
+
+            app.innerHTML = '';
+            app.appendChild(wrap);
+            const btn = document.getElementById('forceVoteBtn');
+            if (btn) btn.addEventListener('click', () => send('forceEndVoting'));
+        }
+
+        function renderTiebreak() {
+            const wrap = el(`<div style="display:flex;flex-direction:column;gap:16px;"></div>`);
+            wrap.appendChild(el(`<div class="banner accent">Vote tied. ${me.isHost ? 'Break the tie:' : 'Host is breaking the tie...'}</div>`));
+
+            if (me.isHost && pub.tie) {
+                const candidates = pub.tie.candidates.map((c) => ({ pid: c.pid, name: c.name }));
+                wrap.appendChild(renderTargetCard('Choose who to eliminate', candidates, (pid) => send('resolveTie', { targetPid: pid }), true));
+            }
+
+            app.innerHTML = '';
+            app.appendChild(wrap);
+        }
+
+        function renderGameOver() {
+            const info = pub.gameOver;
+            const wrap = el(`<div style="display:flex;flex-direction:column;gap:16px;"></div>`);
+            wrap.appendChild(el(`<div class="banner ${info.winner === 'mafia' ? 'danger' : 'accent'}">${info.winner === 'mafia' ? 'MAFIA WINS' : 'TOWN WINS'}</div>`));
+
+            const rows = info.reveal.map((r) => `
+                <div class="player-row ${r.alive ? '' : 'dead'}">
+                    <span>${escapeHtml(r.name)}</span>
+                    <span class="tag" style="color:${r.role === 'mafia' ? '#ff4d4d' : '#0070F3'}">${escapeHtml(r.roleName)}</span>
+                </div>
+            `).join('');
+            wrap.appendChild(el(`<div class="card"><h3>Roles Revealed</h3><div class="player-list">${rows}</div></div>`));
+
+            if (me.isHost) {
+                wrap.appendChild(el(`<button class="btn" id="playAgainBtn">Play Again</button>`));
+            }
+
+            app.innerHTML = '';
+            app.appendChild(wrap);
+            const btn = document.getElementById('playAgainBtn');
+            if (btn) btn.addEventListener('click', () => send('playAgain'));
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str == null ? '' : String(str);
+            return d.innerHTML;
+        }
+
+        function render() {
+            if (!pub) {
+                if (!storedName) renderNameEntry();
+                else app.innerHTML = '<div class="center-text">Connecting...</div>';
+                return;
+            }
+            if (!me.pid) {
+                app.innerHTML = '<div class="center-text">Connecting...</div>';
+                return;
+            }
+            if (pub.phase === 'lobby') { renderLobby(); return; }
+            if (me.isSpectator) { renderSpectator(); return; }
+            if (pub.phase === 'night') { renderNight(); return; }
+            if (pub.phase === 'discussion') { renderDiscussion(); return; }
+            if (pub.phase === 'voting') { renderVoting(); return; }
+            if (pub.phase === 'tiebreak') { renderTiebreak(); return; }
+            if (pub.phase === 'gameover') { renderGameOver(); return; }
+        }
+
+        render();
+        connect();
+    </script>
+</body>
+</html>

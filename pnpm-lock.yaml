@@ -17,6 +17,8 @@ importers:
 
   apps/echo: {}
 
+  apps/mafia: {}
+
   apps/tictactoe: {}
 
 packages:
