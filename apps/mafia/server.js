@@ -63,15 +63,27 @@ function countReal() {
     return n;
 }
 
+// Backgrounded browser tabs (e.g. switching between test tabs on one phone) commonly drop
+// their WebSocket without the user actually leaving, so host reassignment needs a grace
+// period — otherwise host flips to whichever tab is merely in the foreground right now.
+const HOST_ABANDON_MS = 30000;
+
 function recomputeHost() {
+    const before = state.hostToken;
     const current = state.hostToken ? players.get(state.hostToken) : null;
-    if (current && current.connected && !current.isSpectator) return;
-    for (const p of players.values()) {
-        if (p.connected && !p.isSpectator) {
-            state.hostToken = p.token;
-            return;
+    const currentStillEligible = current && !current.isSpectator && (
+        current.connected ||
+        (current.disconnectedAt !== null && Date.now() - current.disconnectedAt < HOST_ABANDON_MS)
+    );
+    if (!currentStillEligible) {
+        for (const p of players.values()) {
+            if (p.connected && !p.isSpectator) {
+                state.hostToken = p.token;
+                break;
+            }
         }
     }
+    return state.hostToken !== before;
 }
 
 function sendError(p, message) {
@@ -344,7 +356,8 @@ socket.on('disconnect', (client) => {
     if (!p) return;
     p.connected = false;
     p.clientId = null;
-    recomputeHost();
+    p.disconnectedAt = Date.now();
+    if (recomputeHost()) broadcastYouStateAll();
     broadcastPublic();
 });
 
@@ -358,6 +371,7 @@ socket.on('join', (client, data) => {
     if (p) {
         p.clientId = client.id;
         p.connected = true;
+        p.disconnectedAt = null;
         if (state.phase === 'lobby') p.name = name;
     } else {
         token = token || genId('tok');
@@ -370,6 +384,7 @@ socket.on('join', (client, data) => {
             ready: false,
             alive: !isSpectator,
             connected: true,
+            disconnectedAt: null,
             role: null,
             isSpectator,
             investigations: []
@@ -377,7 +392,7 @@ socket.on('join', (client, data) => {
         players.set(token, p);
     }
 
-    recomputeHost();
+    if (recomputeHost()) broadcastYouStateAll();
     socket.emitTo(client.id, 'joined', { token: p.token, pid: p.pid });
     sendYouState(p);
     broadcastPublic();

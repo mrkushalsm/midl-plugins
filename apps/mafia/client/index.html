@@ -294,6 +294,85 @@
             text-transform: uppercase;
             color: #666666;
         }
+
+        /* ---- Motion ---- */
+
+        @keyframes screenEnter {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .screen-enter {
+            animation: screenEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes overlayFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes overlayCardIn {
+            from { opacity: 0; transform: scale(0.94) translateY(6px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .overlay {
+            animation: overlayFadeIn 0.25s ease-out;
+        }
+
+        .overlay-card {
+            animation: overlayCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn {
+            transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+        }
+
+        .target-btn {
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .status-dot {
+            transition: background-color 0.3s ease;
+        }
+
+        .banner {
+            transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .player-row {
+            transition: opacity 0.3s ease;
+        }
+
+        /* ---- Countdown ---- */
+
+        .countdown-card {
+            align-items: center;
+            text-align: center;
+        }
+
+        .countdown-display {
+            font-size: 52px;
+            font-weight: 800;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            color: #0070F3;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+        }
+
+        .countdown-display.countdown-low {
+            color: #ff4d4d;
+            animation: countdownPulse 1s ease-in-out infinite;
+        }
+
+        .countdown-display.countdown-done {
+            color: #555555;
+        }
+
+        @keyframes countdownPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
     </style>
 </head>
 <body>
@@ -328,6 +407,52 @@
         const app = document.getElementById('app');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
+
+        // Only animate the screen-enter transition when the actual screen changes (phase/role),
+        // not on every minor state refresh within the same screen.
+        let lastScreenKey = null;
+        let animateNextMount = true;
+
+        function screenKey() {
+            if (!pub || !me.pid) return 'connecting';
+            if (pub.phase === 'lobby') return 'lobby';
+            if (me.isSpectator) return 'spectator';
+            return pub.phase;
+        }
+
+        function mount(node) {
+            if (animateNextMount) node.classList.add('screen-enter');
+            app.innerHTML = '';
+            app.appendChild(node);
+        }
+
+        // Purely cosmetic client-side countdown for the discussion phase (the host runtime has
+        // no timer primitives, and the server never gates on this) — just a visible reference.
+        let countdownTimer = null;
+
+        function stopCountdown() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+        }
+
+        function startCountdown(startedAt, durationSeconds) {
+            stopCountdown();
+            function tick() {
+                const target = document.getElementById('countdownDisplay');
+                if (!target) { stopCountdown(); return; }
+                const elapsedMs = Date.now() - (startedAt || Date.now());
+                const remaining = Math.max(0, durationSeconds - Math.floor(elapsedMs / 1000));
+                const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+                const ss = String(remaining % 60).padStart(2, '0');
+                target.textContent = `${mm}:${ss}`;
+                target.classList.toggle('countdown-low', remaining > 0 && remaining <= 10);
+                target.classList.toggle('countdown-done', remaining === 0);
+            }
+            tick();
+            countdownTimer = setInterval(tick, 1000);
+        }
 
         function send(event, data) {
             if (ws && ws.readyState === WebSocket.OPEN) {
@@ -412,8 +537,7 @@
         // ---- Screens ----
 
         function renderNameEntry() {
-            app.innerHTML = '';
-            app.appendChild(el(`
+            mount(el(`
                 <div class="card">
                     <h3>Enter Your Name</h3>
                     <input type="text" id="nameInput" placeholder="Your name..." maxlength="20" autofocus>
@@ -472,8 +596,7 @@
                 wrap.appendChild(startBtn);
             }
 
-            app.innerHTML = '';
-            app.appendChild(wrap);
+            mount(wrap);
 
             document.getElementById('readyBtn').addEventListener('click', () => send('toggleReady'));
             const startBtnEl = document.getElementById('startBtn');
@@ -486,8 +609,7 @@
         }
 
         function renderSpectator() {
-            app.innerHTML = '';
-            app.appendChild(el(`
+            mount(el(`
                 <div class="card">
                     <h3>Round ${pub.round}</h3>
                     <div class="center-text">You'll join in as a player next round. Watching phase: <strong>${pub.phase}</strong></div>
@@ -537,8 +659,7 @@
                 : '';
 
             if (!me.alive) {
-                app.innerHTML = '';
-                app.appendChild(el(`<div style="display:flex;flex-direction:column;gap:16px;">${voteResultBanner}<div class="card"><h3>Night ${pub.round}</h3><div class="center-text">You have been eliminated. Watching the game unfold.</div></div></div>`));
+                mount(el(`<div style="display:flex;flex-direction:column;gap:16px;">${voteResultBanner}<div class="card"><h3>Night ${pub.round}</h3><div class="center-text">You have been eliminated. Watching the game unfold.</div></div></div>`));
                 return;
             }
 
@@ -575,8 +696,7 @@
                 wrap.appendChild(el(`<button class="btn secondary" id="forceNightBtn">Force End Night</button>`));
             }
 
-            app.innerHTML = '';
-            app.appendChild(wrap);
+            mount(wrap);
             const forceBtn = document.getElementById('forceNightBtn');
             if (forceBtn) forceBtn.addEventListener('click', () => send('forceEndNight'));
         }
@@ -606,7 +726,13 @@
                 wrap.appendChild(el(`<div class="banner accent">Everyone survived the night.</div>`));
             }
 
-            wrap.appendChild(el(`<div class="banner">DAY ${pub.round} &middot; DISCUSSION &middot; SUGGESTED ${pub.settings.discussionSeconds}S</div>`));
+            wrap.appendChild(el(`<div class="banner">DAY ${pub.round} &middot; DISCUSSION</div>`));
+            wrap.appendChild(el(`
+                <div class="card countdown-card">
+                    <div class="small-label">Discussion Time Remaining</div>
+                    <div class="countdown-display" id="countdownDisplay">00:00</div>
+                </div>
+            `));
 
             const rows = pub.players.filter((p) => !p.isSpectator).map((p) => `
                 <div class="player-row ${p.alive ? '' : 'dead'}"><span>${escapeHtml(p.name)}</span><span class="tag">${p.alive ? 'ALIVE' : 'ELIMINATED'}</span></div>
@@ -621,8 +747,8 @@
                 wrap.appendChild(el(`<button class="btn" id="startVotingBtn">Start Voting</button>`));
             }
 
-            app.innerHTML = '';
-            app.appendChild(wrap);
+            mount(wrap);
+            startCountdown(pub.phaseStartedAt, pub.settings.discussionSeconds);
             const btn = document.getElementById('startVotingBtn');
             if (btn) btn.addEventListener('click', () => send('startVoting'));
         }
@@ -648,8 +774,7 @@
                 wrap.appendChild(el(`<button class="btn secondary" id="forceVoteBtn">End Voting Now</button>`));
             }
 
-            app.innerHTML = '';
-            app.appendChild(wrap);
+            mount(wrap);
             const btn = document.getElementById('forceVoteBtn');
             if (btn) btn.addEventListener('click', () => send('forceEndVoting'));
         }
@@ -663,8 +788,7 @@
                 wrap.appendChild(renderTargetCard('Choose who to eliminate', candidates, (pid) => send('resolveTie', { targetPid: pid }), true));
             }
 
-            app.innerHTML = '';
-            app.appendChild(wrap);
+            mount(wrap);
         }
 
         function renderGameOver() {
@@ -684,8 +808,7 @@
                 wrap.appendChild(el(`<button class="btn" id="playAgainBtn">Play Again</button>`));
             }
 
-            app.innerHTML = '';
-            app.appendChild(wrap);
+            mount(wrap);
             const btn = document.getElementById('playAgainBtn');
             if (btn) btn.addEventListener('click', () => send('playAgain'));
         }
@@ -697,13 +820,18 @@
         }
 
         function render() {
+            const key = screenKey();
+            animateNextMount = key !== lastScreenKey;
+            lastScreenKey = key;
+            if (key !== 'discussion') stopCountdown();
+
             if (!pub) {
                 if (!storedName) renderNameEntry();
-                else app.innerHTML = '<div class="center-text">Connecting...</div>';
+                else mount(el('<div class="center-text">Connecting...</div>'));
                 return;
             }
             if (!me.pid) {
-                app.innerHTML = '<div class="center-text">Connecting...</div>';
+                mount(el('<div class="center-text">Connecting...</div>'));
                 return;
             }
             if (pub.phase === 'lobby') { renderLobby(); return; }
