@@ -374,6 +374,27 @@
             50% { transform: scale(1.08); }
         }
 
+        /* ---- Persistent role header ---- */
+
+        .role-header {
+            padding: 10px 16px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border: 1px solid #0070F3;
+            background-color: #0070F31a;
+            color: #0070F3;
+            transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .role-header.mafia {
+            border-color: #ff4d4d;
+            background-color: #ff4d4d1a;
+            color: #ff4d4d;
+        }
+
         /* ---- Confetti ---- */
 
         .confetti-piece {
@@ -410,6 +431,7 @@
                 <span id="statusText">CONNECTING</span>
             </div>
         </div>
+        <div id="roleHeader" class="role-header hidden"></div>
         <div id="app"></div>
     </div>
 
@@ -428,7 +450,9 @@
         let storedName = localStorage.getItem(NAME_KEY) || '';
         let me = { pid: null, isHost: false, role: null, roleName: null, roleTeam: null, roleDescription: null, teammates: [], alive: true, isSpectator: false, investigations: [] };
         let pub = null;
-        let ackedRound = 0; // last round for which the role/results overlay was dismissed
+        // The role-reveal overlay should only ever be seen once per game (not every night),
+        // and resets whenever the lobby is (re)entered so a new game shows it again.
+        let roleRevealShown = false;
 
         const app = document.getElementById('app');
         const statusDot = document.getElementById('statusDot');
@@ -518,13 +542,33 @@
             setTimeout(() => launchConfettiBurst(50), 450);
         }
 
+        // A backgrounded tab commonly drops its WebSocket without the user noticing (the button
+        // still looks tappable). Rather than silently dropping a tap that lands mid-reconnect,
+        // queue it and flush once the socket is back open, and reconnect immediately instead of
+        // waiting out the auto-retry backoff — this is what made buttons feel unresponsive
+        // ("works after reloading / tapping a few times").
+        let pendingActions = [];
+
         function send(event, data) {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ event, data }));
+                return;
+            }
+            pendingActions.push({ event, data });
+            if (!ws || ws.readyState === WebSocket.CLOSED) {
+                connect();
             }
         }
 
+        function flushPendingActions() {
+            if (!pendingActions.length) return;
+            const queued = pendingActions;
+            pendingActions = [];
+            queued.forEach(({ event, data }) => send(event, data));
+        }
+
         function connect() {
+            if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
@@ -533,6 +577,7 @@
                 if (token && storedName) {
                     send('join', { token, name: storedName });
                 }
+                flushPendingActions();
                 render();
             };
 
@@ -702,7 +747,7 @@
             `);
             document.body.appendChild(overlay);
             document.getElementById('ackBtn').addEventListener('click', () => {
-                ackedRound = pub.round;
+                roleRevealShown = true;
                 overlay.remove();
                 render();
             });
@@ -719,7 +764,7 @@
         }
 
         function renderNight() {
-            if (pub.round > ackedRound) { renderRoleOverlay(); }
+            if (pub.round === 1 && !roleRevealShown) { renderRoleOverlay(); }
 
             const voteResultBanner = pub.lastVoteResult
                 ? (pub.lastVoteResult.eliminatedName
@@ -894,11 +939,27 @@
             return d.innerHTML;
         }
 
+        function updateRoleHeader() {
+            const header = document.getElementById('roleHeader');
+            if (!header) return;
+            const inRound = pub && ['night', 'discussion', 'voting', 'tiebreak'].includes(pub.phase);
+            if (!me.role || !inRound) {
+                header.classList.add('hidden');
+                header.textContent = '';
+                return;
+            }
+            header.classList.remove('hidden');
+            header.classList.toggle('mafia', me.roleTeam === 'mafia');
+            header.textContent = `Role: ${me.roleName}`;
+        }
+
         function render() {
             const key = screenKey();
             animateNextMount = key !== lastScreenKey;
             lastScreenKey = key;
             if (key !== 'discussion') stopCountdown();
+            if (pub && pub.phase === 'lobby') roleRevealShown = false;
+            updateRoleHeader();
 
             if (!pub) {
                 if (!storedName) renderNameEntry();
