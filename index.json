@@ -21,7 +21,7 @@
       "schemaVersion": 1,
       "id": "mafia",
       "name": "Mafia",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "minSdkVersion": "1.0.0",
       "author": "Midl",
       "description": "Classic social deduction party game. Mafia secretly eliminate Villagers each night while the Doctor and Detective try to protect and expose them by day.",
@@ -30,8 +30,8 @@
         "multiplayer",
         "party"
       ],
-      "zipUrl": "https://github.com/mrkushalsm/midl-plugins/releases/download/v2026.08.25/mafia-1.0.4.zip",
-      "sha256": "7dea327dc54fe403e30a406497adecef6ed5b5b368668af2c477566c01a81b9b"
+      "zipUrl": "https://github.com/mrkushalsm/midl-plugins/releases/download/v2026.08.25/mafia-1.0.5.zip",
+      "sha256": "1a0aa5cd7eb4e87030d77459de451ecf6ac6d748848d6847884ed196fe62b6ce"
     },
     {
       "schemaVersion": 1,
