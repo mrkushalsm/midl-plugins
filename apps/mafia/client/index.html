@@ -373,6 +373,32 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.08); }
         }
+
+        /* ---- Confetti ---- */
+
+        .confetti-piece {
+            position: fixed;
+            top: 0;
+            left: 0;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 50;
+            transform: translate(var(--start-x), var(--start-y)) rotate(0deg);
+            animation-name: confettiFly;
+            animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes confettiFly {
+            0% {
+                transform: translate(var(--start-x), var(--start-y)) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--end-x), var(--end-y)) rotate(var(--rotate));
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -452,6 +478,44 @@
             }
             tick();
             countdownTimer = setInterval(tick, 1000);
+        }
+
+        // Celebratory burst for the winning side only, shot in from the left/right edges of
+        // the screen. Pure CSS/DOM, no canvas or external library — self-contained since this
+        // plugin's client has no internet access to fetch anything from.
+        function launchConfettiBurst(count) {
+            const colors = ['#0070F3', '#ffd60a', '#34d399', '#ff8a3d', '#ffffff', '#ff4d4d'];
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            for (let i = 0; i < count; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                const fromLeft = i % 2 === 0;
+                const startX = fromLeft ? -12 : vw + 12;
+                const startY = Math.random() * vh * 0.7;
+                const endX = fromLeft
+                    ? startX + vw * (0.25 + Math.random() * 0.5)
+                    : startX - vw * (0.25 + Math.random() * 0.5);
+                const endY = startY + vh * (0.3 + Math.random() * 0.5);
+                const size = 6 + Math.random() * 6;
+                piece.style.width = `${size}px`;
+                piece.style.height = `${size * (0.5 + Math.random() * 0.7)}px`;
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.setProperty('--start-x', `${startX}px`);
+                piece.style.setProperty('--start-y', `${startY}px`);
+                piece.style.setProperty('--end-x', `${endX}px`);
+                piece.style.setProperty('--end-y', `${endY}px`);
+                piece.style.setProperty('--rotate', `${Math.random() * 720 - 360}deg`);
+                piece.style.animationDuration = `${1.4 + Math.random() * 1.1}s`;
+                piece.style.animationDelay = `${Math.random() * 0.35}s`;
+                document.body.appendChild(piece);
+                piece.addEventListener('animationend', () => piece.remove());
+            }
+        }
+
+        function launchConfetti() {
+            launchConfettiBurst(70);
+            setTimeout(() => launchConfettiBurst(50), 450);
         }
 
         function send(event, data) {
@@ -618,6 +682,11 @@
         }
 
         function renderRoleOverlay() {
+            // A new 'state' broadcast can arrive (and re-trigger renderNight) before the player
+            // taps Continue — without this guard that stacks a second overlay on top, and the
+            // click listener ends up bound to the buried first button instead of the visible one.
+            if (document.querySelector('.overlay')) return;
+
             const teammatesHtml = me.teammates.length
                 ? `<div class="small-label">Your fellow Mafia</div><div>${me.teammates.map((t) => escapeHtml(t.name)).join(', ')}</div>`
                 : '';
@@ -811,6 +880,12 @@
             mount(wrap);
             const btn = document.getElementById('playAgainBtn');
             if (btn) btn.addEventListener('click', () => send('playAgain'));
+
+            // Only the winning side gets confetti, and only once when the game-over screen
+            // is first reached (animateNextMount is false on any incidental re-render of it).
+            if (animateNextMount && me.roleTeam && me.roleTeam === info.winner) {
+                launchConfetti();
+            }
         }
 
         function escapeHtml(str) {
