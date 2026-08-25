@@ -710,6 +710,11 @@
             const real = pub.players.filter((p) => !p.isSpectator);
             const allReady = real.length > 0 && real.every((p) => p.ready);
             const enoughPlayers = real.length >= pub.settings.minPlayers;
+            // 'ready' is never included in the private you_state payload (toggleReady only
+            // broadcasts public state), so read our own ready status from the public player
+            // list instead of the stale/always-undefined me.ready.
+            const myPublicEntry = pub.players.find((p) => p.pid === me.pid);
+            const iAmReady = !!(myPublicEntry && myPublicEntry.ready);
 
             const rows = pub.players.map((p) => `
                 <div class="player-row">
@@ -733,7 +738,7 @@
                 `));
             }
 
-            const readyBtn = el(`<button class="btn ${me.ready ? 'solid' : ''}" id="readyBtn">${me.ready ? "I'm not ready" : "I'm Ready"}</button>`);
+            const readyBtn = el(`<button class="btn ${iAmReady ? 'solid' : ''}" id="readyBtn">${iAmReady ? "I'm not ready" : "I'm Ready"}</button>`);
             wrap.appendChild(readyBtn);
 
             if (me.isHost) {
