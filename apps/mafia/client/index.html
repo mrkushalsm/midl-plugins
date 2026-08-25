@@ -344,6 +344,20 @@
             transition: opacity 0.3s ease;
         }
 
+        .banner-transient {
+            max-height: 120px;
+            overflow: hidden;
+            transition: opacity 0.5s ease, max-height 0.5s ease, margin 0.5s ease, padding 0.5s ease, border-width 0.5s ease;
+        }
+
+        .banner-transient.banner-fading {
+            opacity: 0;
+            max-height: 0;
+            margin: 0;
+            padding: 0 16px;
+            border-width: 0;
+        }
+
         /* ---- Countdown ---- */
 
         .countdown-card {
@@ -474,6 +488,29 @@
             if (animateNextMount) node.classList.add('screen-enter');
             app.innerHTML = '';
             app.appendChild(node);
+        }
+
+        // Death/elimination banners should appear once, then fade out on their own after a
+        // couple seconds with the rest of the screen reflowing to fill the space — but render()
+        // re-runs on every 'state' broadcast, which would otherwise re-create (and re-time) the
+        // same banner repeatedly for as long as it stays relevant. contentKey identifies a
+        // specific piece of news (e.g. "night deaths for round 3") so it's only ever shown once;
+        // once dismissed it's omitted from future renders entirely instead of being re-added.
+        const dismissedBannerKeys = new Set();
+        let bannerInstanceCounter = 0;
+
+        function transientBanner(contentKey, className, innerHtml) {
+            if (dismissedBannerKeys.has(contentKey)) return '';
+            const instanceId = `tb-${++bannerInstanceCounter}`;
+            setTimeout(() => {
+                const node = document.getElementById(instanceId);
+                if (node) {
+                    node.classList.add('banner-fading');
+                    setTimeout(() => node.remove(), 550);
+                }
+                dismissedBannerKeys.add(contentKey);
+            }, 2000);
+            return `<div class="${className} banner-transient" id="${instanceId}">${innerHtml}</div>`;
         }
 
         // Purely cosmetic client-side countdown for the discussion phase (the host runtime has
@@ -686,7 +723,7 @@
                 `));
             }
 
-            const readyBtn = el(`<button class="btn ${me.ready ? 'secondary' : ''}" id="readyBtn">${me.ready ? 'Not Ready' : "I'm Ready"}</button>`);
+            const readyBtn = el(`<button class="btn ${me.ready ? 'secondary' : ''}" id="readyBtn">${me.ready ? "I'm not ready" : "I'm Ready"}</button>`);
             wrap.appendChild(readyBtn);
 
             if (me.isHost) {
@@ -710,11 +747,23 @@
             document.getElementById('readyBtn').addEventListener('click', () => send('toggleReady'));
             const startBtnEl = document.getElementById('startBtn');
             if (startBtnEl) startBtnEl.addEventListener('click', () => send('startGame'));
+
+            const discInput = document.getElementById('discInput');
             const saveBtn = document.getElementById('saveSettingsBtn');
-            if (saveBtn) saveBtn.addEventListener('click', () => {
-                const val = parseInt(document.getElementById('discInput').value, 10);
-                send('updateSettings', { discussionSeconds: val });
-            });
+            if (discInput && saveBtn) {
+                // Turn accent blue while the value differs from what's actually saved, and
+                // back to the default muted look once a fresh 'state' broadcast confirms the
+                // save (renderLobby re-renders with the input matching pub.settings again).
+                const syncSaveBtnColor = () => {
+                    const dirty = parseInt(discInput.value, 10) !== pub.settings.discussionSeconds;
+                    saveBtn.classList.toggle('secondary', !dirty);
+                };
+                discInput.addEventListener('input', syncSaveBtnColor);
+                saveBtn.addEventListener('click', () => {
+                    const val = parseInt(discInput.value, 10);
+                    send('updateSettings', { discussionSeconds: val });
+                });
+            }
         }
 
         function renderSpectator() {
@@ -768,8 +817,8 @@
 
             const voteResultBanner = pub.lastVoteResult
                 ? (pub.lastVoteResult.eliminatedName
-                    ? `<div class="banner danger">${escapeHtml(pub.lastVoteResult.eliminatedName)} was voted out${pub.lastVoteResult.wasTie ? ' (tie-break)' : ''}.</div>`
-                    : `<div class="banner accent">The vote ended with no elimination.</div>`)
+                    ? transientBanner(`voteresult:${pub.round}`, 'banner danger', `${escapeHtml(pub.lastVoteResult.eliminatedName)} was voted out${pub.lastVoteResult.wasTie ? ' (tie-break)' : ''}.`)
+                    : transientBanner(`voteresult:${pub.round}`, 'banner accent', 'The vote ended with no elimination.'))
                 : '';
 
             if (!me.alive) {
@@ -782,7 +831,6 @@
 
             if (voteResultBanner) wrap.appendChild(el(voteResultBanner));
 
-            wrap.appendChild(el(`<div class="role-badge ${me.roleTeam === 'mafia' ? 'mafia' : ''}">${escapeHtml(me.roleName || '')}</div>`));
             wrap.appendChild(el(`<div class="banner">NIGHT ${pub.round} &middot; ${pub.night ? pub.night.submittedPids.length : 0} ACTED</div>`));
 
             if (submitted) {
@@ -835,9 +883,11 @@
             const wrap = el(`<div style="display:flex;flex-direction:column;gap:16px;"></div>`);
 
             if (pub.lastNightDeaths.length) {
-                wrap.appendChild(el(`<div class="banner danger">${pub.lastNightDeaths.map((d) => escapeHtml(d.name)).join(', ')} did not survive the night.</div>`));
+                const html = transientBanner(`nightdeath:${pub.round}`, 'banner danger', `${pub.lastNightDeaths.map((d) => escapeHtml(d.name)).join(', ')} did not survive the night.`);
+                if (html) wrap.appendChild(el(html));
             } else if (pub.round > 1) {
-                wrap.appendChild(el(`<div class="banner accent">Everyone survived the night.</div>`));
+                const html = transientBanner(`nightsurvive:${pub.round}`, 'banner accent', 'Everyone survived the night.');
+                if (html) wrap.appendChild(el(html));
             }
 
             wrap.appendChild(el(`<div class="banner">DAY ${pub.round} &middot; DISCUSSION</div>`));

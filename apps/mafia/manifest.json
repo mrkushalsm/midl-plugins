@@ -1,7 +1,7 @@
 {
   "id": "mafia",
   "name": "Mafia",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "minSdkVersion": "1.0.0",
   "author": "Midl",
   "description": "Classic social deduction party game. Mafia secretly eliminate Villagers each night while the Doctor and Detective try to protect and expose them by day.",
