@@ -312,9 +312,15 @@
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
 
+        // A `?slot=2` query param namespaces localStorage so multiple tabs/browsers on the
+        // SAME phone can act as distinct test players instead of colliding on one identity.
+        const slot = new URLSearchParams(window.location.search).get('slot');
+        const TOKEN_KEY = slot ? `mafia_token_slot${slot}` : 'mafia_token';
+        const NAME_KEY = slot ? `mafia_name_slot${slot}` : 'mafia_name';
+
         let ws = null;
-        let token = localStorage.getItem('mafia_token') || null;
-        let storedName = localStorage.getItem('mafia_name') || '';
+        let token = localStorage.getItem(TOKEN_KEY) || null;
+        let storedName = localStorage.getItem(NAME_KEY) || '';
         let me = { pid: null, isHost: false, role: null, roleName: null, roleTeam: null, roleDescription: null, teammates: [], alive: true, isSpectator: false, investigations: [] };
         let pub = null;
         let ackedRound = 0; // last round for which the role/results overlay was dismissed
@@ -358,7 +364,7 @@
         function handleMessage(event, data) {
             if (event === 'joined') {
                 token = data.token;
-                localStorage.setItem('mafia_token', token);
+                localStorage.setItem(TOKEN_KEY, token);
             } else if (event === 'you_state') {
                 me = data;
             } else if (event === 'state') {
@@ -395,10 +401,10 @@
             const name = input.value.trim();
             if (!name) return;
             storedName = name.slice(0, 20);
-            localStorage.setItem('mafia_name', storedName);
+            localStorage.setItem(NAME_KEY, storedName);
             if (!token) {
                 token = 'tok_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-                localStorage.setItem('mafia_token', token);
+                localStorage.setItem(TOKEN_KEY, token);
             }
             send('join', { token, name: storedName });
         }
