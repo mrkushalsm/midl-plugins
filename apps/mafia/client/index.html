@@ -173,6 +173,16 @@
             color: #ffffff;
         }
 
+        .btn.solid {
+            background-color: #0070F3;
+            color: #ffffff;
+        }
+
+        .btn.solid:hover {
+            background-color: #005bc4;
+            color: #ffffff;
+        }
+
         .btn.danger {
             border-color: #ff4d4d;
             color: #ff4d4d;
@@ -723,7 +733,7 @@
                 `));
             }
 
-            const readyBtn = el(`<button class="btn ${me.ready ? 'secondary' : ''}" id="readyBtn">${me.ready ? "I'm not ready" : "I'm Ready"}</button>`);
+            const readyBtn = el(`<button class="btn ${me.ready ? 'solid' : ''}" id="readyBtn">${me.ready ? "I'm not ready" : "I'm Ready"}</button>`);
             wrap.appendChild(readyBtn);
 
             if (me.isHost) {
